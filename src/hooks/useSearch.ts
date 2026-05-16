@@ -20,6 +20,7 @@ import {
   cacheStore,
   computeTtl,
   mergeRankedResults,
+  diversifyByDomain,
 } from "@/search-engine";
 import type { CacheEntry, RankedResult, SearchMode, QueryIntent } from "@/search-engine/types";
 import type { ResultsMeta } from "@/store/appStore";
@@ -278,8 +279,12 @@ export function useSearch() {
     }
 
     const merged = mergeRankedResults(successful.map((s) => s.results));
+    // Domain diversification keeps any one site from taking the top-N spots;
+    // bumped slightly higher for the "all" vertical where we want breadth.
+    const maxPerDomain = ctx.vertical === "all" ? 3 : 5;
+    const diversified = diversifyByDomain(merged, maxPerDomain);
     const resultLimit = Math.max(15, Math.min(30, ctx.pageSize * 2));
-    const filtered = filterByVertical(merged, ctx.vertical).slice(0, resultLimit);
+    const filtered = filterByVertical(diversified, ctx.vertical).slice(0, resultLimit);
 
     const primaryHit = successful.find((s) => s.id === primaryProvider.id);
     const localHit = successful.find((s) => s.id === "local");

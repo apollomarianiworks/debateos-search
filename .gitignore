@@ -18,3 +18,4 @@ release/
 .vscode/settings.json
 .idea/
 .claude/
+tmp/

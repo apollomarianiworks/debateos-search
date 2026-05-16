@@ -13,7 +13,7 @@ export { normalizeQuery, tokenize, detectIntent, extractDomain } from "./normali
 export { scoreCredibility, inferSourceType } from "./credibility";
 export { scoreFreshness, freshnessLabel } from "./freshness";
 export { rankResults } from "./ranking";
-export { mergeRankedResults } from "./mergeResults";
+export { mergeRankedResults, diversifyByDomain } from "./mergeResults";
 export {
   cacheKey,
   computeTtl,

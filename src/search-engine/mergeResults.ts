@@ -50,6 +50,36 @@ export function mergeRankedResults(groups: RankedResult[][]): RankedResult[] {
   );
 }
 
+/**
+ * Soft per-domain cap to keep one site from monopolizing the result list.
+ *
+ * Walks the ranked list in score order; for any domain that's already shown
+ * `maxPerDomain` times, the next entry from that domain is held back into a
+ * "tail" bucket. The tail is appended at the end, preserving score order
+ * within itself. Returns a flat list, same length as the input.
+ *
+ * Defaults: keep up to 3 results per domain in the head section.
+ */
+export function diversifyByDomain(
+  results: RankedResult[],
+  maxPerDomain = 3
+): RankedResult[] {
+  const counts = new Map<string, number>();
+  const head: RankedResult[] = [];
+  const tail: RankedResult[] = [];
+  for (const r of results) {
+    const d = r.domain.toLowerCase();
+    const seen = counts.get(d) ?? 0;
+    if (seen < maxPerDomain) {
+      head.push(r);
+      counts.set(d, seen + 1);
+    } else {
+      tail.push(r);
+    }
+  }
+  return [...head, ...tail];
+}
+
 function normalizeUrl(url: string): string {
   try {
     const u = new URL(url);

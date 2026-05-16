@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "tauri": "tauri",
-    "release:manifest": "node scripts/generate-github-release-manifest.mjs"
+    "release:manifest": "node scripts/generate-github-release-manifest.mjs",
+    "sources:import": "node scripts/import-pdf-sources.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.5.0",

@@ -37,7 +37,8 @@ const MIN_SNIPPET_LEN = 60;
 function computeRelevance(
   result: SearchResult,
   tokens: string[],
-  phrases: string[]
+  phrases: string[],
+  query: string
 ): { score: number; exactMatchBonus: number } {
   const title = result.title.toLowerCase();
   const snippet = result.snippet.toLowerCase();
@@ -71,6 +72,19 @@ function computeRelevance(
     const joined = tokens.join(" ");
     if (title.includes(joined)) exactMatchBonus += 12;
     else if (snippet.includes(joined)) exactMatchBonus += 6;
+  }
+
+  // Title-equality bonus: title is exactly the query (or query is the entire title)
+  // — strongest signal of "this is THE answer". Granted on top of phrase bonus.
+  const qLower = query.toLowerCase().trim();
+  const tLower = title.trim();
+  if (tLower === qLower) {
+    exactMatchBonus += 22;
+  } else if (tLower.startsWith(qLower + " ") || tLower.startsWith(qLower + ":") || tLower.startsWith(qLower + " —")) {
+    exactMatchBonus += 14;
+  } else if (tokens.length >= 1 && tokens.every((t) => tLower.includes(t))) {
+    // All tokens in title (any order)
+    exactMatchBonus += 6;
   }
 
   exactMatchBonus = Math.min(30, exactMatchBonus);
@@ -113,7 +127,7 @@ export function rankResults(
     const fLabel = freshnessLabel(raw.publishedDate, raw.fetchedDate);
     const sourceTypePriority = SOURCE_TYPE_PRIORITY[refinedType];
 
-    const { score: relevance, exactMatchBonus } = computeRelevance(raw, tokens, phrases);
+    const { score: relevance, exactMatchBonus } = computeRelevance(raw, tokens, phrases, query);
     const qualityPenalty = computeQualityPenalty(raw, credibility);
 
     const wFreshness = W_FRESHNESS_BASE * (0.3 + intent.needsFreshness * 1.4);

@@ -10,6 +10,8 @@ export {
   addCustomSource,
   removeCustomSource,
   resetRegistry,
+  REGISTRY_STATS,
+  IMPORTED_SOURCE_STATS,
 } from "./sourceRegistry";
 export type { AddSourceInput } from "./sourceRegistry";
 export { classifyDomain } from "./sourceClassifier";

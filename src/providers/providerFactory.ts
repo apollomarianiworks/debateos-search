@@ -5,6 +5,7 @@ import { WikipediaProvider } from "./WikipediaProvider";
 import { ArxivProvider } from "./ArxivProvider";
 import { CourtListenerProvider } from "./CourtListenerProvider";
 import { NominatimProvider } from "./NominatimProvider";
+import { QuickDefinitionProvider } from "./QuickDefinitionProvider";
 import type { QueryIntent } from "@/search-engine/types";
 import type { ProviderCatalogEntry } from "./providerStatus";
 import {
@@ -83,10 +84,13 @@ export function buildVerticalProviders(
 
   switch (vertical) {
     case "all":
+      // Definition lookup runs first so a quick-def result, if any, has the
+      // freshest start time and lands at the top of the merged list.
+      add(new QuickDefinitionProvider());
       add(...providersForAll(config, intent, query));
       break;
     case "web":
-      add(new WikidataProvider(), new InternetArchiveProvider(), new NominatimProvider());
+      add(new QuickDefinitionProvider(), new WikidataProvider(), new InternetArchiveProvider(), new NominatimProvider());
       break;
     case "images": {
       if (config.braveApiKey) {
@@ -205,6 +209,7 @@ export function getProviderCatalog(config: ProviderConfig): ProviderCatalogEntry
     { id: "internet-archive", name: "Internet Archive", keyRequired: false, enabled: true, verticals: ["all", "web", "images"], sourcePacks: ["images-media", "people"] },
     { id: "gdelt", name: "GDELT", keyRequired: false, enabled: true, verticals: ["all", "news", "factcheck"], sourcePacks: ["factchecking", "international"] },
     { id: "nominatim", name: "OpenStreetMap (Nominatim)", keyRequired: false, enabled: true, verticals: ["all", "web"], sourcePacks: ["geo-maps"], note: "Free geocoding; 1 request/sec usage policy." },
+    { id: "quick-definition", name: "Quick Definition", keyRequired: false, enabled: true, verticals: ["all", "web"], sourcePacks: ["people"], note: "Wiktionary + Wikipedia summary for 'define X' / 'what is X' style queries." },
     { id: "brave", name: "Brave Search", keyRequired: true, enabled: hasBrave, verticals: ["all", "web", "news", "factcheck"], sourcePacks: ["factchecking"], note: hasBrave ? undefined : "Add a Brave API key for live general web/news search." },
     { id: "brave-images", name: "Brave Images", keyRequired: true, enabled: hasBrave, verticals: ["images"], sourcePacks: ["images-media"], note: hasBrave ? undefined : "Uses the same Brave API key." },
     { id: "fred", name: "FRED", keyRequired: true, enabled: false, verticals: ["stats"], sourcePacks: ["statistics", "economics"], note: "Skeleton only: FRED series search requires an API key." },

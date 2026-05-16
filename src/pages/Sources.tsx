@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   listSources,
@@ -9,6 +9,7 @@ import {
   classifyDomain,
   indexSource,
   sourceIdsForPack,
+  REGISTRY_STATS,
 } from "@/source-registry";
 import { getProviderCatalog, listProviderHealth } from "@/providers";
 import { SOURCE_PACKS } from "@/source-registry/sourcePacks";
@@ -132,6 +133,76 @@ export function Sources() {
     }
   }
 
+  interface BatchState {
+    running: boolean;
+    doneCount: number;
+    failCount: number;
+    total: number;
+    current?: string;
+  }
+  const [batchState, setBatchState] = useState<BatchState>({
+    running: false, doneCount: 0, failCount: 0, total: 0,
+  });
+  // Cancel flag lives outside React state so the loop sees writes synchronously.
+  const cancelRef = useRef(false);
+
+  async function runBatch(sourcesToIndex: Source[]) {
+    if (batchState.running) return;
+    const eligible = sourcesToIndex.filter((s) => s.enabled);
+    if (eligible.length === 0) return;
+
+    cancelRef.current = false;
+    setBatchState({ running: true, doneCount: 0, failCount: 0, total: eligible.length, current: undefined });
+
+    for (let i = 0; i < eligible.length; i++) {
+      if (cancelRef.current) break;
+      const src = eligible[i];
+      setBatchState((s) => ({ ...s, current: src.name }));
+
+      // Throttle: 1.5s between requests to be polite to remote hosts.
+      if (i > 0) {
+        await new Promise((r) => setTimeout(r, 1500));
+        if (cancelRef.current) break;
+      }
+
+      try {
+        const result = await indexSource(src);
+        setBatchState((s) => ({
+          ...s,
+          doneCount: s.doneCount + (result.ok ? 1 : 0),
+          failCount: s.failCount + (result.ok ? 0 : 1),
+        }));
+      } catch {
+        setBatchState((s) => ({ ...s, failCount: s.failCount + 1 }));
+      }
+      refresh();
+    }
+
+    setBatchState((s) => ({ ...s, running: false, current: undefined }));
+  }
+
+  function handleIndexPack() {
+    if (!activePack) return;
+    const ids = new Set(sourceIdsForPack(activePack));
+    runBatch(sources.filter((s) => ids.has(s.id)));
+  }
+
+  const STALE_AFTER_DAYS = 30;
+  function handleRefreshStale() {
+    const cutoff = Date.now() - STALE_AFTER_DAYS * 86_400_000;
+    runBatch(sources.filter((s) => !s.lastIndexedAt || s.lastIndexedAt < cutoff));
+  }
+
+  function handleStopBatch() {
+    cancelRef.current = true;
+  }
+
+  function handleRefreshRegistry() {
+    // Re-loads listSources() from storage so any user override or newly-imported
+    // generated entries appear immediately without an app restart.
+    refresh();
+  }
+
   function handleToggle(source: Source, enabled: boolean) {
     setEnabled(source.id, enabled);
     refresh();
@@ -216,7 +287,54 @@ export function Sources() {
             <div className="sources-stat__value">{stats.domainCount}</div>
             <div className="sources-stat__label">Domains</div>
           </div>
+          <div className="sources-stat">
+            <div className="sources-stat__value">{REGISTRY_STATS.builtIn}</div>
+            <div className="sources-stat__label">Registry total</div>
+          </div>
         </div>
+
+        <div className="sources-registry-line">
+          <span>
+            Registry: {REGISTRY_STATS.builtIn} sources
+            ({REGISTRY_STATS.defaults} curated + {REGISTRY_STATS.imported} imported)
+          </span>
+          <span style={{ display: "inline-flex", gap: 8 }}>
+            <button
+              className="btn btn--ghost btn--sm"
+              onClick={handleRefreshStale}
+              disabled={batchState.running}
+              title={`Re-index sources whose last index is older than ${STALE_AFTER_DAYS} days`}
+            >
+              Refresh stale indexed sources
+            </button>
+            <button className="btn btn--ghost btn--sm" onClick={handleRefreshRegistry}>
+              Refresh source registry
+            </button>
+          </span>
+        </div>
+
+        {batchState.running ? (
+          <div className="batch-banner">
+            <div className="batch-banner__label">
+              Indexing {batchState.doneCount + batchState.failCount} / {batchState.total}
+              {batchState.current ? ` — ${batchState.current}` : ""}
+              {batchState.failCount > 0 ? ` · ${batchState.failCount} failed` : ""}
+            </div>
+            <div className="batch-banner__bar">
+              <div
+                className="batch-banner__fill"
+                style={{ width: `${Math.round(((batchState.doneCount + batchState.failCount) / batchState.total) * 100)}%` }}
+              />
+            </div>
+            <button className="btn btn--ghost btn--sm" onClick={handleStopBatch}>
+              Stop
+            </button>
+          </div>
+        ) : (batchState.doneCount + batchState.failCount) > 0 ? (
+          <div className="batch-banner batch-banner--done">
+            ✓ Batch complete — {batchState.doneCount} succeeded, {batchState.failCount} failed.
+          </div>
+        ) : null}
 
         <div className="settings-section">
           <div className="settings-section__title">Source packs</div>
@@ -329,6 +447,14 @@ export function Sources() {
               </button>
               <button className="btn btn--ghost btn--sm" onClick={() => handlePackToggleAll(false)}>
                 Disable all
+              </button>
+              <button
+                className="btn btn--primary btn--sm"
+                onClick={handleIndexPack}
+                disabled={batchState.running}
+                title="Crawl and index every enabled source in this pack"
+              >
+                Index this pack
               </button>
             </span>
           )}
