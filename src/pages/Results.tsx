@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { VerticalTabs } from "@/components/VerticalTabs";
 import { ResultCardSwitch } from "@/components/cards/ResultCardSwitch";
+import { RelatedSection } from "@/components/RelatedSection";
 import { ResultSkeletons } from "@/components/LoadingSkeletons";
 import { ResearchModeToggle } from "@/components/ResearchModeToggle";
 import { useSearch } from "@/hooks/useSearch";
@@ -174,11 +175,16 @@ export function Results() {
         ) : visibleResults.length === 0 && hasSearched ? (
           <EmptyResults query={query} vertical={activeVertical} />
         ) : (
-          <div className={isImageGrid ? "img-grid" : "results-list"}>
-            {visibleResults.map((r) => (
-              <ResultCardSwitch key={r.id} result={r} />
-            ))}
-          </div>
+          <>
+            <div className={isImageGrid ? "img-grid" : "results-list"}>
+              {visibleResults.map((r) => (
+                <ResultCardSwitch key={r.id} result={r} />
+              ))}
+            </div>
+            {!isLoading && hasSearched && visibleResults.length > 0 && (
+              <RelatedSection query={query} results={visibleResults} vertical={activeVertical} />
+            )}
+          </>
         )}
       </div>
     </div>

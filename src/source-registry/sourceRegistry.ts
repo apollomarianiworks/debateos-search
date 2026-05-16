@@ -1,8 +1,29 @@
 import type { Source, SourceOverride, SourceRegistryStorage, CredibilityTier } from "./types";
 import type { SourceType } from "@/providers/types";
 import { DEFAULT_SOURCES } from "./defaultSources";
+import { IMPORTED_SOURCES, IMPORTED_SOURCE_STATS } from "./sources.generated";
 
 const STORAGE_KEY = "debateos:source-registry-v1";
+
+/**
+ * Combined "built-in" source list. Hand-curated DEFAULT_SOURCES win on
+ * domain collisions over the auto-imported 1k list, so manual edits don't
+ * get clobbered by the next regeneration.
+ */
+const BUILTIN_SOURCES: Source[] = (() => {
+  const byDomain = new Map<string, Source>();
+  for (const s of IMPORTED_SOURCES) byDomain.set(s.domain.toLowerCase(), s);
+  for (const s of DEFAULT_SOURCES) byDomain.set(s.domain.toLowerCase(), s); // overrides imported
+  return Array.from(byDomain.values());
+})();
+
+export { IMPORTED_SOURCE_STATS };
+export const REGISTRY_STATS = {
+  defaults: DEFAULT_SOURCES.length,
+  imported: IMPORTED_SOURCES.length,
+  builtIn: BUILTIN_SOURCES.length,
+  generatedAt: IMPORTED_SOURCE_STATS.generatedAt,
+};
 
 function readStorage(): SourceRegistryStorage {
   if (typeof localStorage === "undefined") {
@@ -49,8 +70,8 @@ function applyOverride(source: Source, override?: SourceOverride): Source {
  */
 export function listSources(): Source[] {
   const state = readStorage();
-  const defaults = DEFAULT_SOURCES.map((s) => applyOverride(s, state.overrides[s.id]));
-  return [...defaults, ...state.customSources];
+  const builtins = BUILTIN_SOURCES.map((s) => applyOverride(s, state.overrides[s.id]));
+  return [...builtins, ...state.customSources];
 }
 
 export function listEnabledSources(): Source[] {
@@ -63,7 +84,7 @@ export function getSource(id: string): Source | undefined {
 
 export function setEnabled(id: string, enabled: boolean): void {
   const state = readStorage();
-  if (DEFAULT_SOURCES.some((d) => d.id === id)) {
+  if (BUILTIN_SOURCES.some((d) => d.id === id)) {
     state.overrides[id] = { ...state.overrides[id], enabled };
   } else {
     const idx = state.customSources.findIndex((s) => s.id === id);
@@ -72,9 +93,37 @@ export function setEnabled(id: string, enabled: boolean): void {
   writeStorage(state);
 }
 
+/**
+ * Bulk-toggle every known source whose id appears in `ids` (defaults +
+ * custom). Returns the count actually changed (skips sources that already
+ * had the target state). One storage write at the end.
+ */
+export function setEnabledBulk(ids: string[], enabled: boolean): number {
+  const state = readStorage();
+  const idSet = new Set(ids);
+  let changed = 0;
+
+  for (const def of BUILTIN_SOURCES) {
+    if (!idSet.has(def.id)) continue;
+    const current = state.overrides[def.id]?.enabled ?? def.enabled;
+    if (current === enabled) continue;
+    state.overrides[def.id] = { ...state.overrides[def.id], enabled };
+    changed++;
+  }
+  for (const cs of state.customSources) {
+    if (!idSet.has(cs.id)) continue;
+    if (cs.enabled === enabled) continue;
+    cs.enabled = enabled;
+    changed++;
+  }
+
+  if (changed > 0) writeStorage(state);
+  return changed;
+}
+
 export function markIndexed(id: string, when: number, error?: string): void {
   const state = readStorage();
-  if (DEFAULT_SOURCES.some((d) => d.id === id)) {
+  if (BUILTIN_SOURCES.some((d) => d.id === id)) {
     state.overrides[id] = {
       ...state.overrides[id],
       lastIndexedAt: when,

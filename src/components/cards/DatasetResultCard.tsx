@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import type { RankedResult } from "@/search-engine/types";
 import type { DatasetResult } from "@/providers/types";
 import { CredibilityBadge } from "../CredibilityBadge";
+import { ResultMetaRow } from "./ResultMetaRow";
 
 type DatasetRanked = RankedResult & DatasetResult;
 
@@ -44,6 +45,7 @@ export function DatasetResultCard({ result }: { result: DatasetRanked }) {
           {result.title}
         </h3>
         <p className="dataset-card__snippet">{result.snippet}</p>
+        <ResultMetaRow result={result} />
         <div className="dataset-card__footer">
           {result.formats && result.formats.length > 0 && (
             <div className="dataset-card__formats">

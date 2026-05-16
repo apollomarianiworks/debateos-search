@@ -20,6 +20,9 @@ export { BraveImagesProvider } from "./BraveImagesProvider";
 export { WikipediaProvider } from "./WikipediaProvider";
 export { ArxivProvider } from "./ArxivProvider";
 export { CourtListenerProvider } from "./CourtListenerProvider";
+export { NominatimProvider } from "./NominatimProvider";
+export { QuickDefinitionProvider } from "./QuickDefinitionProvider";
+export { OfflinePackProvider } from "./OfflinePackProvider";
 export {
   CensusProvider,
   CdcDataProvider,
@@ -41,5 +44,12 @@ export { buildProvider, buildBraveProvider, buildVerticalProviders, getProviderC
 export type { ProviderConfig, ProviderId, BuildResult } from "./providerFactory";
 export { ProviderError, isProviderError } from "./providerErrors";
 export type { ProviderErrorKind } from "./providerErrors";
-export { listProviderHealth, recordProviderError, recordProviderSuccess } from "./providerStatus";
+export {
+  listProviderHealth,
+  recordProviderError,
+  recordProviderSuccess,
+  isProviderInCooldown,
+  getProviderReliability,
+  resetProviderHealth,
+} from "./providerStatus";
 export type { ProviderCatalogEntry, ProviderHealth } from "./providerStatus";

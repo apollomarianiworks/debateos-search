@@ -35,7 +35,9 @@
         { "url": "https://api.bls.gov/*" },
         { "url": "https://github.com/*" },
         { "url": "https://objects.githubusercontent.com/*" },
-        { "url": "https://api.github.com/*" }
+        { "url": "https://api.github.com/*" },
+        { "url": "https://nominatim.openstreetmap.org/*" },
+        { "url": "https://en.wiktionary.org/*" }
       ]
     }
   ]

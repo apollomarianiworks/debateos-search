@@ -118,4 +118,22 @@ export const DEFAULT_SOURCES: Source[] = [
   // ── Fact-check additional ─────────────────────────────────────
   def("apfactcheck", "AP Fact Check", "apnews.com", "https://apnews.com/hub/ap-fact-check", "factcheck", 1, ["fact-check", "wire"]),
   def("reuters-fc", "Reuters Fact Check", "reuters.com", "https://www.reuters.com/fact-check/", "factcheck", 1, ["fact-check", "wire"]),
+
+  // ── Climate / Earth science ──────────────────────────────────
+  def("noaa", "NOAA — National Oceanic & Atmospheric Administration", "noaa.gov", "https://www.noaa.gov/", "government", 1, ["climate", "weather", "ocean", "science", "us"]),
+  def("noaa-data", "NOAA Climate Data Online", "ncei.noaa.gov", "https://www.ncei.noaa.gov/", "statistics", 1, ["climate", "weather", "open-data"]),
+  def("nasa", "NASA", "nasa.gov", "https://www.nasa.gov/", "government", 1, ["science", "space", "earth", "us"]),
+  def("nasa-data", "NASA Open Data Portal", "data.nasa.gov", "https://data.nasa.gov/", "statistics", 1, ["open-data", "science", "us"]),
+  def("nasa-images", "NASA Image and Video Library", "images.nasa.gov", "https://images.nasa.gov/", "general", 1, ["images", "media", "science"]),
+  def("usgs", "U.S. Geological Survey", "usgs.gov", "https://www.usgs.gov/", "government", 1, ["geology", "earth", "science", "us"]),
+
+  // ── Civic / Transparency ─────────────────────────────────────
+  def("usafacts", "USAFacts", "usafacts.org", "https://usafacts.org/", "statistics", 2, ["statistics", "civic", "us"], "Aggregates government data into accessible summaries."),
+  def("ourworldindata", "Our World in Data", "ourworldindata.org", "https://ourworldindata.org/", "academic", 2, ["statistics", "global", "research"]),
+  def("statista-free", "Statista (free tier)", "statista.com", "https://www.statista.com/", "statistics", 3, ["statistics"], "Most charts require a paid subscription."),
+  def("hhs-data", "HHS Open Data", "healthdata.gov", "https://healthdata.gov/", "statistics", 1, ["health", "open-data", "us"]),
+
+  // ── Geo / Mapping ────────────────────────────────────────────
+  def("openstreetmap", "OpenStreetMap", "openstreetmap.org", "https://www.openstreetmap.org/", "general", 2, ["geo", "maps", "open-data"]),
+  def("geonames", "GeoNames", "geonames.org", "https://www.geonames.org/", "general", 2, ["geo", "reference"]),
 ];
