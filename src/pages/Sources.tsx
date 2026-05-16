@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import {
   listSources,
   setEnabled,
+  setEnabledBulk,
   addCustomSource,
   removeCustomSource,
   classifyDomain,
   indexSource,
+  sourceIdsForPack,
 } from "@/source-registry";
 import { getProviderCatalog, listProviderHealth } from "@/providers";
 import { SOURCE_PACKS } from "@/source-registry/sourcePacks";
@@ -44,6 +46,7 @@ export function Sources() {
   const setIndexingFlag = useAppStore((s) => s.setIndexing);
   const settings = useAppStore((s) => s.settings);
   const [filter, setFilter] = useState<"all" | SourceType>("all");
+  const [activePack, setActivePack] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   // Form for adding custom source
@@ -74,10 +77,16 @@ export function Sources() {
     }
   }, [newUrl]);
 
+  const packMemberIds = useMemo(
+    () => (activePack ? new Set(sourceIdsForPack(activePack)) : null),
+    [activePack]
+  );
+
   const filtered = useMemo(() => {
     const lower = search.toLowerCase();
     return sources.filter((s) => {
       if (filter !== "all" && s.sourceType !== filter) return false;
+      if (packMemberIds && !packMemberIds.has(s.id)) return false;
       if (!lower) return true;
       return (
         s.name.toLowerCase().includes(lower) ||
@@ -85,7 +94,14 @@ export function Sources() {
         s.tags.some((t) => t.includes(lower))
       );
     });
-  }, [sources, filter, search]);
+  }, [sources, filter, search, packMemberIds]);
+
+  function handlePackToggleAll(enabled: boolean) {
+    if (!activePack) return;
+    const ids = sourceIdsForPack(activePack);
+    setEnabledBulk(ids, enabled);
+    refresh();
+  }
 
   async function handleIndex(source: Source) {
     // Hard-guard: don't start a second index while one is already running for this source.
@@ -285,6 +301,37 @@ export function Sources() {
           <button className="btn btn--primary" onClick={() => setShowAddForm(true)}>
             + Add source
           </button>
+        </div>
+
+        <div className="source-packs-row" role="tablist" aria-label="Source packs">
+          <button
+            type="button"
+            className={`source-pack-chip${activePack === null ? " source-pack-chip--active" : ""}`}
+            onClick={() => setActivePack(null)}
+          >
+            All packs
+          </button>
+          {SOURCE_PACKS.map((pack) => (
+            <button
+              key={pack.id}
+              type="button"
+              className={`source-pack-chip${activePack === pack.id ? " source-pack-chip--active" : ""}`}
+              onClick={() => setActivePack(activePack === pack.id ? null : pack.id)}
+              title={pack.description}
+            >
+              {pack.name}
+            </button>
+          ))}
+          {activePack && (
+            <span className="source-packs-actions">
+              <button className="btn btn--ghost btn--sm" onClick={() => handlePackToggleAll(true)}>
+                Enable all in pack
+              </button>
+              <button className="btn btn--ghost btn--sm" onClick={() => handlePackToggleAll(false)}>
+                Disable all
+              </button>
+            </span>
+          )}
         </div>
 
         {showAddForm && (

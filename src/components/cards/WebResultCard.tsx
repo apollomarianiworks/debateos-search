@@ -4,6 +4,7 @@ import type { RankedResult } from "@/search-engine/types";
 import { SourceBadge } from "../SourceBadge";
 import { CredibilityBadge } from "../CredibilityBadge";
 import { RankDetails } from "../RankDetails";
+import { ResultMetaRow } from "./ResultMetaRow";
 
 function faviconUrl(domain: string) {
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
@@ -53,6 +54,8 @@ export function WebResultCard({ result }: { result: RankedResult }) {
 
       <div className="result-card__url">{result.displayUrl}</div>
       <p className="result-card__snippet">{result.snippet}</p>
+
+      <ResultMetaRow result={result} />
 
       <div className="result-card__tags">
         <CredibilityBadge score={result.credibilityScore} />

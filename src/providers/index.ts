@@ -20,6 +20,7 @@ export { BraveImagesProvider } from "./BraveImagesProvider";
 export { WikipediaProvider } from "./WikipediaProvider";
 export { ArxivProvider } from "./ArxivProvider";
 export { CourtListenerProvider } from "./CourtListenerProvider";
+export { NominatimProvider } from "./NominatimProvider";
 export {
   CensusProvider,
   CdcDataProvider,

@@ -23,7 +23,7 @@ export const SOURCE_PACKS: SourcePack[] = [
     name: "Statistics",
     description: "Official statistics, datasets, indicators, and public-use data catalogs.",
     sourceTypes: ["statistics"],
-    sourceIds: ["bls", "census", "cdc", "worldbank", "fred", "data-gov", "data-europa"],
+    sourceIds: ["bls", "census", "cdc", "worldbank", "fred", "data-gov", "data-europa", "usafacts", "ourworldindata", "hhs-data", "noaa-data", "nasa-data"],
     providerIds: ["data-gov", "world-bank", "census", "cdc-data"],
   },
   {
@@ -103,7 +103,39 @@ export const SOURCE_PACKS: SourcePack[] = [
     name: "International data",
     description: "International organizations, global indicators, and non-U.S. context.",
     sourceTypes: ["statistics", "government", "news"],
-    sourceIds: ["worldbank", "imf", "oecd", "un", "who", "data-europa", "bbc"],
+    sourceIds: ["worldbank", "imf", "oecd", "un", "who", "data-europa", "bbc", "ourworldindata"],
     providerIds: ["world-bank", "gdelt", "openalex"],
   },
+  {
+    id: "science",
+    name: "Science",
+    description: "Earth, space, climate, and physical science — NASA, NOAA, USGS, top journals.",
+    sourceTypes: ["academic", "government"],
+    sourceIds: ["nasa", "nasa-data", "nasa-images", "noaa", "noaa-data", "usgs", "nature", "science-mag", "arxiv-org"],
+    providerIds: ["arxiv", "openalex", "crossref", "semantic-scholar"],
+  },
+  {
+    id: "geo-maps",
+    name: "Geography & Maps",
+    description: "Geographic lookup, mapping data, place names.",
+    sourceTypes: ["general"],
+    sourceIds: ["openstreetmap", "geonames"],
+    providerIds: ["nominatim"],
+  },
 ];
+
+/** True if the given source id is listed in the given pack. */
+export function sourceInPack(sourceId: string, packId: string): boolean {
+  const pack = SOURCE_PACKS.find((p) => p.id === packId);
+  return pack ? pack.sourceIds.includes(sourceId) : false;
+}
+
+/** All source IDs that belong to the given pack. */
+export function sourceIdsForPack(packId: string): string[] {
+  return SOURCE_PACKS.find((p) => p.id === packId)?.sourceIds ?? [];
+}
+
+/** Look up a pack by id. */
+export function findPack(packId: string): SourcePack | undefined {
+  return SOURCE_PACKS.find((p) => p.id === packId);
+}

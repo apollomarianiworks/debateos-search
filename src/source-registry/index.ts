@@ -5,6 +5,7 @@ export {
   listEnabledSources,
   getSource,
   setEnabled,
+  setEnabledBulk,
   markIndexed,
   addCustomSource,
   removeCustomSource,
@@ -14,3 +15,10 @@ export type { AddSourceInput } from "./sourceRegistry";
 export { classifyDomain } from "./sourceClassifier";
 export { indexSource } from "./indexSource";
 export type { IndexSourceResult } from "./indexSource";
+export {
+  SOURCE_PACKS,
+  sourceInPack,
+  sourceIdsForPack,
+  findPack,
+} from "./sourcePacks";
+export type { SourcePack } from "./sourcePacks";

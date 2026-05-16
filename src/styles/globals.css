@@ -1800,3 +1800,119 @@ input, textarea {
   border-radius: 99px;
   transition: width 200ms ease;
 }
+
+/* ──────────────────────────────────────────────
+   Source pack chip row (Sources page)
+   ────────────────────────────────────────────── */
+.source-packs-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.source-pack-chip {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.source-pack-chip:hover {
+  color: var(--color-text-primary);
+  border-color: #ccccd8;
+}
+.source-pack-chip--active {
+  color: white;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.source-packs-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--color-border);
+}
+
+/* ──────────────────────────────────────────────
+   Result meta row (under snippet on Web/Dataset)
+   ────────────────────────────────────────────── */
+.result-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 6px;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.result-meta-row__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.result-meta-row__chip + .result-meta-row__chip::before {
+  content: "·";
+  margin-right: 6px;
+  color: var(--color-border);
+}
+
+/* ──────────────────────────────────────────────
+   Related searches section (under results list)
+   ────────────────────────────────────────────── */
+.related-section {
+  margin: 32px 0 48px;
+  padding: 18px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.related-group__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  font-family: var(--font-sans);
+}
+
+.related-group__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.related-chip {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  padding: 5px 13px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+  font-family: var(--font-sans);
+}
+.related-chip:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.related-chip--source {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}

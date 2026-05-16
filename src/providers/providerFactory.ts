@@ -4,6 +4,7 @@ import { BraveImagesProvider } from "./BraveImagesProvider";
 import { WikipediaProvider } from "./WikipediaProvider";
 import { ArxivProvider } from "./ArxivProvider";
 import { CourtListenerProvider } from "./CourtListenerProvider";
+import { NominatimProvider } from "./NominatimProvider";
 import type { QueryIntent } from "@/search-engine/types";
 import type { ProviderCatalogEntry } from "./providerStatus";
 import {
@@ -85,7 +86,7 @@ export function buildVerticalProviders(
       add(...providersForAll(config, intent, query));
       break;
     case "web":
-      add(new WikidataProvider(), new InternetArchiveProvider());
+      add(new WikidataProvider(), new InternetArchiveProvider(), new NominatimProvider());
       break;
     case "images": {
       if (config.braveApiKey) {
@@ -158,6 +159,10 @@ function providersForAll(
     providers.push(new WikipediaProvider({ imagesOnly: true }), new InternetArchiveProvider());
   }
 
+  if (looksGeoQuery(query)) {
+    providers.push(new NominatimProvider());
+  }
+
   if (!intent?.isAcademic && !intent?.isStats && !intent?.isGovernment && !intent?.isLegal && !intent?.isCurrent && !intent?.isImage) {
     providers.push(new OpenAlexProvider(), new CrossrefProvider(), new DataGovProvider(), new GdeltProvider());
   }
@@ -175,6 +180,10 @@ function looksDataQuery(query: string): boolean {
 
 function looksBookQuery(query: string): boolean {
   return /\b(book|books|author|authors|novel|library|archive|publication)\b/i.test(query);
+}
+
+function looksGeoQuery(query: string): boolean {
+  return /\b(where|near|address|city|town|county|country|map|location|coordinates|latitude|longitude|zip|postal)\b/i.test(query);
 }
 
 export function getProviderCatalog(config: ProviderConfig): ProviderCatalogEntry[] {
@@ -195,6 +204,7 @@ export function getProviderCatalog(config: ProviderConfig): ProviderCatalogEntry
     { id: "open-library", name: "Open Library", keyRequired: false, enabled: true, verticals: ["all", "web", "people"], sourcePacks: ["people", "images-media"] },
     { id: "internet-archive", name: "Internet Archive", keyRequired: false, enabled: true, verticals: ["all", "web", "images"], sourcePacks: ["images-media", "people"] },
     { id: "gdelt", name: "GDELT", keyRequired: false, enabled: true, verticals: ["all", "news", "factcheck"], sourcePacks: ["factchecking", "international"] },
+    { id: "nominatim", name: "OpenStreetMap (Nominatim)", keyRequired: false, enabled: true, verticals: ["all", "web"], sourcePacks: ["geo-maps"], note: "Free geocoding; 1 request/sec usage policy." },
     { id: "brave", name: "Brave Search", keyRequired: true, enabled: hasBrave, verticals: ["all", "web", "news", "factcheck"], sourcePacks: ["factchecking"], note: hasBrave ? undefined : "Add a Brave API key for live general web/news search." },
     { id: "brave-images", name: "Brave Images", keyRequired: true, enabled: hasBrave, verticals: ["images"], sourcePacks: ["images-media"], note: hasBrave ? undefined : "Uses the same Brave API key." },
     { id: "fred", name: "FRED", keyRequired: true, enabled: false, verticals: ["stats"], sourcePacks: ["statistics", "economics"], note: "Skeleton only: FRED series search requires an API key." },

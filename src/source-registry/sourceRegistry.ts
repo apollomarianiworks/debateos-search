@@ -72,6 +72,34 @@ export function setEnabled(id: string, enabled: boolean): void {
   writeStorage(state);
 }
 
+/**
+ * Bulk-toggle every known source whose id appears in `ids` (defaults +
+ * custom). Returns the count actually changed (skips sources that already
+ * had the target state). One storage write at the end.
+ */
+export function setEnabledBulk(ids: string[], enabled: boolean): number {
+  const state = readStorage();
+  const idSet = new Set(ids);
+  let changed = 0;
+
+  for (const def of DEFAULT_SOURCES) {
+    if (!idSet.has(def.id)) continue;
+    const current = state.overrides[def.id]?.enabled ?? def.enabled;
+    if (current === enabled) continue;
+    state.overrides[def.id] = { ...state.overrides[def.id], enabled };
+    changed++;
+  }
+  for (const cs of state.customSources) {
+    if (!idSet.has(cs.id)) continue;
+    if (cs.enabled === enabled) continue;
+    cs.enabled = enabled;
+    changed++;
+  }
+
+  if (changed > 0) writeStorage(state);
+  return changed;
+}
+
 export function markIndexed(id: string, when: number, error?: string): void {
   const state = readStorage();
   if (DEFAULT_SOURCES.some((d) => d.id === id)) {
