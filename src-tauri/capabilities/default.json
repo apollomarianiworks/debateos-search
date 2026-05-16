@@ -1,0 +1,42 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capability for DebateOS Search",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:webview:allow-create-webview-window",
+    "core:window:allow-close",
+    "shell:allow-open",
+    "updater:default",
+    "process:allow-restart",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://api.search.brave.com/*" },
+        { "url": "https://en.wikipedia.org/*" },
+        { "url": "https://*.wikipedia.org/*" },
+        { "url": "https://www.wikidata.org/*" },
+        { "url": "https://export.arxiv.org/*" },
+        { "url": "https://api.openalex.org/*" },
+        { "url": "https://api.crossref.org/*" },
+        { "url": "https://api.semanticscholar.org/*" },
+        { "url": "https://catalog.data.gov/*" },
+        { "url": "https://api.worldbank.org/*" },
+        { "url": "https://api.census.gov/*" },
+        { "url": "https://data.cdc.gov/*" },
+        { "url": "https://www.courtlistener.com/*" },
+        { "url": "https://www.federalregister.gov/*" },
+        { "url": "https://openlibrary.org/*" },
+        { "url": "https://archive.org/*" },
+        { "url": "https://api.gdeltproject.org/*" },
+        { "url": "https://api.stlouisfed.org/*" },
+        { "url": "https://api.usa.gov/*" },
+        { "url": "https://api.bls.gov/*" },
+        { "url": "https://github.com/*" },
+        { "url": "https://objects.githubusercontent.com/*" },
+        { "url": "https://api.github.com/*" }
+      ]
+    }
+  ]
+}
