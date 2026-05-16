@@ -4,6 +4,18 @@ import { scoreCredibility, inferSourceType } from "./credibility";
 import { scoreFreshness, freshnessLabel } from "./freshness";
 import { tokenize } from "./normalize";
 
+/**
+ * Bump whenever the ranking algorithm changes in a way that would make
+ * previously cached `finalRankScore` values misleading. The cache layer
+ * mixes this into its storage key so old entries become unreachable and
+ * get recomputed on the next search.
+ *
+ *   v1 — initial ranking
+ *   v2 — title-exact + diversification (introduced in prior pass)
+ *   v3 — homepage + empty-snippet penalties + answerability gate
+ */
+export const RANKING_VERSION = 3;
+
 const SOURCE_TYPE_PRIORITY: Record<SourceType, number> = {
   government: 100,
   statistics: 95,
@@ -39,7 +51,7 @@ function computeRelevance(
   tokens: string[],
   phrases: string[],
   query: string
-): { score: number; exactMatchBonus: number } {
+): { score: number; exactMatchBonus: number; reasons: string[] } {
   const title = result.title.toLowerCase();
   const snippet = result.snippet.toLowerCase();
   const domain = result.domain.toLowerCase();
@@ -54,6 +66,11 @@ function computeRelevance(
     if (domain.includes(token)) domainHits++;
   }
 
+  const reasons: string[] = [];
+  if (titleHits > 0) reasons.push(`${titleHits} query term${titleHits === 1 ? "" : "s"} in title`);
+  if (snippetHits > 0) reasons.push(`${snippetHits} term${snippetHits === 1 ? "" : "s"} in snippet`);
+  if (domainHits > 0) reasons.push("domain matches query");
+
   const tokenCount = Math.max(1, tokens.length);
   const coverage =
     (titleHits / tokenCount) * 0.55 +
@@ -66,6 +83,7 @@ function computeRelevance(
   for (const phrase of phrases) {
     if (title.includes(phrase)) exactMatchBonus += 18;
     else if (snippet.includes(phrase)) exactMatchBonus += 10;
+    if (title.includes(phrase) || snippet.includes(phrase)) reasons.push(`exact phrase "${phrase}"`);
   }
 
   if (tokens.length >= 2) {
@@ -80,11 +98,14 @@ function computeRelevance(
   const tLower = title.trim();
   if (tLower === qLower) {
     exactMatchBonus += 22;
+    reasons.push("title exactly matches the query");
   } else if (tLower.startsWith(qLower + " ") || tLower.startsWith(qLower + ":") || tLower.startsWith(qLower + " —")) {
     exactMatchBonus += 14;
+    reasons.push("title starts with the query");
   } else if (tokens.length >= 1 && tokens.every((t) => tLower.includes(t))) {
     // All tokens in title (any order)
     exactMatchBonus += 6;
+    reasons.push("all query terms appear in the title");
   }
 
   exactMatchBonus = Math.min(30, exactMatchBonus);
@@ -93,19 +114,39 @@ function computeRelevance(
     relevance = 12;
   }
 
-  return { score: clamp(relevance), exactMatchBonus };
+  return { score: clamp(relevance), exactMatchBonus, reasons };
 }
 
-function computeQualityPenalty(result: SearchResult, credibility: number): number {
+function computeQualityPenalty(result: SearchResult, credibility: number, intent: QueryIntent, query: string): number {
   let penalty = 0;
   if (result.snippet.length < MIN_SNIPPET_LEN) penalty += 8;
   if (result.snippet.length < 20) penalty += 6;
+
+  // Empty / near-empty snippet on a specific query is almost always noise.
+  const wantsSpecifics = intent.isStats || intent.isLegal || intent.isCurrent || /\b(19|20)\d{2}\b/.test(query);
+  if (result.snippet.trim().length < 30 && wantsSpecifics) penalty += 10;
+
+  // Bare homepage results — already detected. Bigger penalty when the query
+  // clearly asked for specifics: a top-level org URL doesn't answer "homicide
+  // rates by race in america" no matter how authoritative the org is.
+  if (isGenericHomepage(result)) {
+    penalty += wantsSpecifics ? 20 : 10;
+  }
+
   if (credibility < 30) penalty += 18;
   else if (credibility < 45) penalty += 8;
+
   if (/^\d+\s+(best|top|amazing|incredible|shocking)/i.test(result.title)) {
     penalty += 6;
   }
-  return Math.min(30, penalty);
+
+  // "Just the org name" titles like "U.S. Census Bureau" with no specifics
+  // and a homepage URL combo are the classic noise pattern.
+  if (isGenericHomepage(result) && result.title.split(/\s+/).length <= 4) {
+    penalty += 4;
+  }
+
+  return Math.min(40, penalty);
 }
 
 /**
@@ -118,7 +159,9 @@ export function rankResults(
   provider: string,
   mode: SearchMode = "standard"
 ): RankedResult[] {
-  const { tokens, phrases } = tokenize(query);
+  const parsed = tokenize(query);
+  const tokens = expandSemanticTokens(parsed.tokens);
+  const phrases = parsed.phrases;
 
   const ranked = rawResults.map<RankedResult>((raw) => {
     const refinedType = inferSourceType(raw.domain, raw.sourceType);
@@ -127,8 +170,9 @@ export function rankResults(
     const fLabel = freshnessLabel(raw.publishedDate, raw.fetchedDate);
     const sourceTypePriority = SOURCE_TYPE_PRIORITY[refinedType];
 
-    const { score: relevance, exactMatchBonus } = computeRelevance(raw, tokens, phrases, query);
-    const qualityPenalty = computeQualityPenalty(raw, credibility);
+    const { score: relevance, exactMatchBonus, reasons } = computeRelevance(raw, tokens, phrases, query);
+    const qualityPenalty = computeQualityPenalty(raw, credibility, intent, query);
+    const intentSourceBoost = computeIntentSourceBoost(refinedType, raw.resultType, intent);
 
     const wFreshness = W_FRESHNESS_BASE * (0.3 + intent.needsFreshness * 1.4);
 
@@ -148,7 +192,7 @@ export function rankResults(
     }
 
     const finalScore = clamp(
-      Math.round(weightedCore + exactMatchBonus - qualityPenalty + researchBonus)
+      Math.round(weightedCore + exactMatchBonus + intentSourceBoost - qualityPenalty + researchBonus)
     );
 
     const explanation: RankExplanation = {
@@ -171,6 +215,8 @@ export function rankResults(
       freshnessLabel: fLabel,
       finalRankScore: finalScore,
       rankExplanation: explanation,
+      matchReasons: buildMatchReasons(reasons, refinedType, provider, credibility),
+      resultOrigin: provider === "Local Index" ? "indexed" : "live",
     };
   });
 
@@ -185,4 +231,50 @@ export function rankResults(
 
 function clamp(n: number): number {
   return Math.max(0, Math.min(100, n));
+}
+
+function buildMatchReasons(base: string[], sourceType: SourceType, provider: string, credibility: number): string[] {
+  const reasons = [...base];
+  if (sourceType !== "general") reasons.push(`${sourceType} source`);
+  if (provider === "Local Index") reasons.push("from your local source index");
+  if (credibility >= 80) reasons.push("high credibility source");
+  return reasons.slice(0, 4);
+}
+
+function computeIntentSourceBoost(sourceType: SourceType, resultType: SearchResult["resultType"], intent: QueryIntent): number {
+  let boost = 0;
+  if (intent.isStats && (sourceType === "statistics" || resultType === "dataset" || resultType === "stat")) boost += 14;
+  if (intent.isLegal && sourceType === "legal") boost += 12;
+  if (intent.isAcademic && sourceType === "academic") boost += 10;
+  if (intent.isGovernment && (sourceType === "government" || sourceType === "statistics")) boost += 8;
+  if (intent.isFactCheck && (sourceType === "factcheck" || sourceType === "news")) boost += 8;
+  return boost;
+}
+
+function isGenericHomepage(result: SearchResult): boolean {
+  try {
+    const url = new URL(result.url);
+    const path = url.pathname.replace(/\/+$/, "");
+    return path === "" || path === "/" || /^home$/i.test(result.title.trim());
+  } catch {
+    return false;
+  }
+}
+
+const SEMANTIC_EXPANSIONS: Record<string, string[]> = {
+  stats: ["statistics", "data"],
+  statistics: ["stats", "data", "dataset"],
+  data: ["statistics", "dataset"],
+  police: ["law", "enforcement"],
+  killings: ["deaths", "fatalities"],
+  crime: ["homicide", "murder", "violent"],
+  women: ["female", "gender"],
+  voting: ["suffrage", "election"],
+  controversy: ["debate", "criticism"],
+  history: ["timeline", "background"],
+  claim: ["fact", "verify", "evidence"],
+};
+
+function expandSemanticTokens(tokens: string[]): string[] {
+  return Array.from(new Set(tokens.flatMap((token) => [token, ...(SEMANTIC_EXPANSIONS[token] ?? [])])));
 }

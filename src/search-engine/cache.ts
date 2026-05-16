@@ -1,27 +1,60 @@
 import type { CacheEntry, CacheLookupResult, QueryIntent } from "./types";
+import { RANKING_VERSION } from "./ranking";
 
-const STORAGE_KEY = "debateos:cache-v1";
+// Storage key embeds the ranking algorithm version so a bump in ranking.ts
+// makes prior cached scores unreachable instead of being silently served.
+const STORAGE_KEY = `debateos:cache-v2-rv${RANKING_VERSION}`;
 const MAX_ENTRIES = 50;
+const BLOB_VERSION = 2;
 
 interface CacheBlob {
-  version: 1;
+  version: typeof BLOB_VERSION;
+  rankingVersion: number;
   entries: Record<string, CacheEntry>;
 }
 
+function emptyBlob(): CacheBlob {
+  return { version: BLOB_VERSION, rankingVersion: RANKING_VERSION, entries: {} };
+}
+
 function readBlob(): CacheBlob {
-  if (typeof localStorage === "undefined") {
-    return { version: 1, entries: {} };
-  }
+  if (typeof localStorage === "undefined") return emptyBlob();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { version: 1, entries: {} };
+    if (!raw) return emptyBlob();
     const parsed = JSON.parse(raw) as CacheBlob;
-    if (parsed.version !== 1 || typeof parsed.entries !== "object") {
-      return { version: 1, entries: {} };
+    if (
+      parsed.version !== BLOB_VERSION ||
+      parsed.rankingVersion !== RANKING_VERSION ||
+      typeof parsed.entries !== "object"
+    ) {
+      // Ranking algorithm or schema has moved on. Drop the prior blob silently.
+      return emptyBlob();
     }
     return parsed;
   } catch {
-    return { version: 1, entries: {} };
+    return emptyBlob();
+  }
+}
+
+/**
+ * Best-effort cleanup of older cache keys left behind by previous schema
+ * versions. Called on first lookup so we don't leak localStorage.
+ */
+let cleanedLegacy = false;
+function cleanLegacyKeys(): void {
+  if (cleanedLegacy || typeof localStorage === "undefined") return;
+  cleanedLegacy = true;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith("debateos:cache-") && k !== STORAGE_KEY) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch {
+    // ignore
   }
 }
 
@@ -56,6 +89,7 @@ export function cacheKey(provider: string, normalizedQuery: string, safeSearch: 
 }
 
 export function lookup(key: string): CacheLookupResult {
+  cleanLegacyKeys();
   const blob = readBlob();
   const entry = blob.entries[key];
   if (!entry) {
