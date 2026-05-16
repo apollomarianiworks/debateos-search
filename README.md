@@ -54,23 +54,29 @@ The `tauri-plugin-updater` plugin **is fully integrated** as of this build:
 - ✅ No startup popups — checks are user-initiated
 - ✅ Successful updates restart the app automatically (via `tauri-plugin-process`)
 
-**What's still needed to actually deliver updates to end users:**
+**Hosting target: GitHub Releases.** The endpoint is pre-configured in `tauri.conf.json`:
 
-1. **Public hosting** for the JSON manifest and signed installer files.
-2. **Replace the placeholder endpoint** in `tauri.conf.json → plugins.updater.endpoints` with the real URL.
-3. **Add that origin** to `src-tauri/capabilities/default.json → http:default.allow`.
-4. **Per release**, bump versions, run `npm run tauri build` (with `TAURI_SIGNING_PRIVATE_KEY_PATH` set), upload the artifacts, and publish a manifest JSON.
-
-For GitHub Releases, generate that manifest from the signed installer artifacts:
-
-```bash
-npm run release:manifest -- --repo=YOUR-ORG/debateos-search --installer=nsis
-# writes release/latest.json
+```
+https://github.com/YOUR-ORG/debateos-search/releases/latest/download/latest.json
 ```
 
-Full step-by-step instructions are in [RELEASE.md](RELEASE.md).
+`releases/latest/download/` auto-resolves to the newest release, so the URL never has to change per release. The HTTP capability allowlist already includes `github.com`, `objects.githubusercontent.com`, and `api.github.com`.
 
-Until then the **Check for updates** button shows a truthful "Update server isn't reachable from this build — see RELEASE.md" message instead of pretending the system works.
+**Per release** — bump version in three files, build signed installers, generate the manifest, and create the GitHub release:
+
+```bash
+# 1. Build signed MSI + NSIS (uses TAURI_SIGNING_PRIVATE_KEY from .tauri/signing.key)
+npm run tauri build
+
+# 2. Generate release/latest.json from the .sig file
+npm run release:manifest -- --repo=YOUR-ORG/debateos-search --installer=nsis
+
+# 3. Tag, push, create the GitHub release, upload installer + .sig + latest.json
+```
+
+Full step-by-step in [RELEASE.md](RELEASE.md).
+
+Until `YOUR-ORG` is swapped for a real GitHub org/user and the first release is published, the **Check for updates** button shows a truthful "Update server isn't reachable from this build — see RELEASE.md" message instead of pretending the system works.
 
 ---
 

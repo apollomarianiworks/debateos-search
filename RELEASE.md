@@ -153,38 +153,38 @@ Use `--installer=msi` only if you intentionally want the updater to install the
 MSI. The NSIS installer is the default because it is the friendlier interactive
 Windows installer path for this app.
 
-### 4. Upload artifacts to your release host
+### 4. Create the GitHub release
 
-Put the installer + its signature at stable URLs, e.g.:
+Tag the version locally and push:
 
-```
-https://your-host/releases/v0.2.0/DebateOS-Search_0.2.0_x64_en-US.msi
-https://your-host/releases/v0.2.0/DebateOS-Search_0.2.0_x64_en-US.msi.sig
-```
-
-### 5. Publish the manifest
-
-The endpoint URL must respond with JSON in this shape (see
-[Tauri updater docs](https://v2.tauri.app/plugin/updater/)):
-
-```jsonc
-{
-  "version": "0.2.0",
-  "notes": "What's new in this release…",
-  "pub_date": "2025-01-15T12:00:00Z",
-  "platforms": {
-    "windows-x86_64": {
-      "signature": "<contents of the .sig file>",
-      "url": "https://your-host/releases/v0.2.0/DebateOS-Search_0.2.0_x64_en-US.msi"
-    }
-  }
-}
+```powershell
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-The `signature` field is the **entire contents of the `.sig` file** as a
-string — open the file in a text editor and copy/paste.
+In the GitHub UI: **Releases → Draft a new release**, pick the tag, paste the
+release notes, then upload these as **release assets** (rename to use
+hyphens — GitHub normalizes spaces but matching exactly is safer):
 
-### 6. Verify
+- `DebateOS-Search_<version>_x64-setup.exe` *(or `…_x64_en-US.msi` if you
+  chose `--installer=msi`)*
+- `DebateOS-Search_<version>_x64-setup.exe.sig` *(matching `.sig`)*
+- `release/latest.json`
+
+Click **Publish release**. Within seconds,
+`https://github.com/<OWNER>/<REPO>/releases/latest/download/latest.json`
+will resolve to your manifest.
+
+> CLI alternative:
+> ```powershell
+> gh release create v0.2.0 `
+>   "src-tauri\target\release\bundle\nsis\DebateOS Search_0.2.0_x64-setup.exe#DebateOS-Search_0.2.0_x64-setup.exe" `
+>   "src-tauri\target\release\bundle\nsis\DebateOS Search_0.2.0_x64-setup.exe.sig#DebateOS-Search_0.2.0_x64-setup.exe.sig" `
+>   "release\latest.json" `
+>   --title "v0.2.0" --notes-file CHANGELOG.md
+> ```
+
+### 5. Verify
 
 On a machine that already has the previous version installed:
 
