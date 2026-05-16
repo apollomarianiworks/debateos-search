@@ -57,7 +57,7 @@ The `tauri-plugin-updater` plugin **is fully integrated** as of this build:
 **Hosting target: GitHub Releases.** The endpoint is pre-configured in `tauri.conf.json`:
 
 ```
-https://github.com/YOUR-ORG/debateos-search/releases/latest/download/latest.json
+https://github.com/apollomarianiworks/debateos-search/releases/latest/download/latest.json
 ```
 
 `releases/latest/download/` auto-resolves to the newest release, so the URL never has to change per release. The HTTP capability allowlist already includes `github.com`, `objects.githubusercontent.com`, and `api.github.com`.
@@ -69,14 +69,14 @@ https://github.com/YOUR-ORG/debateos-search/releases/latest/download/latest.json
 npm run tauri build
 
 # 2. Generate release/latest.json from the .sig file
-npm run release:manifest -- --repo=YOUR-ORG/debateos-search --installer=nsis
+npm run release:manifest -- --repo=apollomarianiworks/debateos-search --installer=nsis
 
 # 3. Tag, push, create the GitHub release, upload installer + .sig + latest.json
 ```
 
 Full step-by-step in [RELEASE.md](RELEASE.md).
 
-Until `YOUR-ORG` is swapped for a real GitHub org/user and the first release is published, the **Check for updates** button shows a truthful "Update server isn't reachable from this build — see RELEASE.md" message instead of pretending the system works.
+Until the first release is published with `latest.json` attached as a release asset, the **Check for updates** button shows a truthful "Update server isn't reachable from this build — see RELEASE.md" message instead of pretending the system works.
 
 ---
 

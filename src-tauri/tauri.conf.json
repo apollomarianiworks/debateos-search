@@ -59,7 +59,7 @@
       "active": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZDQTQ3OTg4NzYxNEE2N0MKUldSOHBoUjJpSG1rL0kyM09mUzBOVkJyV2NzUWxMR2o0SmlBc3dPWTI3dG5uZEEwVEt3c0xEZDcK",
       "endpoints": [
-        "https://github.com/YOUR-ORG/debateos-search/releases/latest/download/latest.json"
+        "https://github.com/apollomarianiworks/debateos-search/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

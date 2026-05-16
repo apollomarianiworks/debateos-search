@@ -5,13 +5,13 @@ in-app updater (Settings → About & Updates) fetches its manifest directly
 from the latest GitHub release asset, verifies its minisign signature against
 the public key bundled in the app, and installs the signed MSI/NSIS update.
 
-> **Current status:** the updater endpoint in `src-tauri/tauri.conf.json` is
-> `https://github.com/YOUR-ORG/debateos-search/releases/latest/download/latest.json`.
-> Replace `YOUR-ORG` with your real GitHub org/user once, commit, and never
-> touch the config again — `releases/latest/download/` auto-resolves to the
-> newest published release. Until you do, the in-app **Check for updates**
-> button reports **"Update server isn't reachable from this build."** —
-> which is honest, not broken.
+> **Current status:** the updater endpoint in `src-tauri/tauri.conf.json` points at
+> `https://github.com/apollomarianiworks/debateos-search/releases/latest/download/latest.json`.
+> `releases/latest/download/` auto-resolves to the newest published release, so this
+> endpoint URL never has to change. Until at least one release has been published
+> with a `latest.json` asset attached, the in-app **Check for updates** button
+> reports **"Update server isn't reachable from this build."** — which is honest,
+> not broken.
 
 ---
 
@@ -42,14 +42,14 @@ blob) into `src-tauri/tauri.conf.json` under `plugins.updater.pubkey`.
 > auto-update.** They'll need a fresh manual install with the new pubkey baked
 > in before they can resume getting updates.
 
-### 2. Point the endpoint at your GitHub repo
+### 2. GitHub endpoint (already wired)
 
-Edit `src-tauri/tauri.conf.json` once and replace `YOUR-ORG` with your real
-GitHub org or username:
+`src-tauri/tauri.conf.json` already points at the
+`apollomarianiworks/debateos-search` repository:
 
 ```jsonc
 "endpoints": [
-  "https://github.com/YOUR-ORG/debateos-search/releases/latest/download/latest.json"
+  "https://github.com/apollomarianiworks/debateos-search/releases/latest/download/latest.json"
 ]
 ```
 
@@ -130,7 +130,7 @@ For GitHub Releases, create the updater manifest from the installer and `.sig`
 that `npm run tauri build` produced:
 
 ```powershell
-npm run release:manifest -- --repo=YOUR-ORG/debateos-search --installer=nsis
+npm run release:manifest -- --repo=apollomarianiworks/debateos-search --installer=nsis
 ```
 
 This writes:
@@ -142,7 +142,7 @@ release/latest.json
 The app's built-in updater endpoint is:
 
 ```text
-https://github.com/YOUR-ORG/debateos-search/releases/latest/download/latest.json
+https://github.com/apollomarianiworks/debateos-search/releases/latest/download/latest.json
 ```
 
 So `latest.json` must be uploaded as a release asset along with the installer
